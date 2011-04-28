@@ -27,7 +27,7 @@ via npm:
     jst.render('Hello {{ name }}', {name: 'jst'});
 
     // Render a file
-    jade.renderFile('path/to/some.html', {name: 'jst'}, function(err, ctx) {
+    jst.renderFile('path/to/some.html', {name: 'jst'}, function(err, ctx) {
       // second arg are optional,
       // the callback can be the second arg
     });
