@@ -1,7 +1,7 @@
 {
   "name": "jst",
   "description": "Node JavaScript template",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Shaun Li <shonhen@gmail.com>",
   "keywords": ["template", "engine", "jst"],
   "main": "./lib/jst.js"
