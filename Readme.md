@@ -36,6 +36,10 @@ via npm:
     var fn = jst.compile('Hello {{ name }}');
     fn({name: 'jst'});
 
+    // Turn on `useIt` so that you can run it more than 30 times faster
+    jst.configure({useIt: true});
+    jst.render('Hello {{ it.name }}', {name: 'jst'});
+
 ## License 
 
 (The MIT License)
