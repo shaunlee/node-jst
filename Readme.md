@@ -36,8 +36,7 @@ via npm:
     var fn = jst.compile('Hello {{ name }}');
     fn({name: 'jst'});
 
-    // Turn on `useIt` so that you can run it more than 30 times faster
-    jst.configure({useIt: true});
+    // Use `it.` as prefix of variables so that you can run it more than 30 times faster
     jst.render('Hello {{ it.name }}', {name: 'jst'});
 
 ## License 
