@@ -39,6 +39,12 @@ via npm:
     // Use `it.` as prefix of variables so that you can run it more than 30 times faster
     jst.render('Hello {{ it.name }}', {name: 'jst'});
 
+    // Client side
+    <script src="jst.js"></script>
+    <script>
+      jst.render('Hello {{ it.name }}', {name: 'jst'});
+    </script>
+
 ## License 
 
 (The MIT License)
