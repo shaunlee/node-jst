@@ -13,15 +13,28 @@ var _cache = {},
       useIt: false
     };
 
+// filters
+
+const htmlCodes = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'},
+      htmlre = /[&<>"]/g,
+      htmlEscape = function (src) { return htmlCodes[src]; };
+
+jst_filter_escape = function(src) {
+  return typeof src !== 'string' ? src : src.replace(htmlre, htmlEscape);
+}
+
+// compiler
+
 var compile = exports.compile = function(ctx) {
-  _options.useIt = ctx.indexOf('{{ it.') > -1;
+  _options.useIt = /{{ (e\()?it\./.test(ctx);
 
   var code = (_options.useIt ? 'var out = "' : 'var out = ""; with(it) { out += "')
     + ctx.replace(/[\t\r\n]/g, '')
-        .replace(/"/g, '\\"').replace(/\{#.+?#\}/g, '')
-        .replace(/\{\{ (.*?) \}\}/g, '"; out += $1; out += "')
-        .split('\{% ').join('"; ')
-        .split(' %\}').join(' out +="')
+        .replace(/"/g, '\\"')
+        .replace(/\{\{ (.+?) \}\}/g, '"; out += $1; out += "')
+        .replace(/\{% (.+?) %\}/g, '"; $1 out += "')
+        .replace(/\{#.+?#\}/g, '')
+        .replace(/ e\(/g, ' jst_filter_escape(')
     + (_options.useIt ? '"; return out;' : '"; } return out;');
   return new Function('it', code.replace(' out += "";', ''));
 }

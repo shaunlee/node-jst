@@ -40,6 +40,9 @@ via npm:
     // Use `it.` as prefix of variables so that you can run it more than 30 times faster
     jst.render('Hello {{ it.name }}', {name: 'jst'});
 
+    // Filters
+    jst.render('Hello {{ e(it.name) }}', {name: '<strong>jst</strong>'});
+
     // Client side
     <script src="jst.js"></script>
     <script>
