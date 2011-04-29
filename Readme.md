@@ -51,7 +51,7 @@ via npm:
   [A brief comparison of some JavaScript templating engines on a short
   template: 7 DOM nodes ... 7 interpolated values.][link]
 
-  [link]: http://jsperf.com/dom-vs-innerhtml-based-templating
+  [link]: http://jsperf.com/dom-vs-innerhtml-based-templating/144
 
 ## License 
 
