@@ -1,6 +1,7 @@
 # Node JavaScript Template
 
- Node-jst is a pretty high performance template engine and implemented with JavaScript for Node.js
+ Node-jst is a pretty high performance template engine and implemented
+ with JavaScript for Node.js
 
 ## Installation
 
@@ -44,6 +45,13 @@ via npm:
     <script>
       jst.render('Hello {{ it.name }}', {name: 'jst'});
     </script>
+
+## Benchmarks
+
+  [A brief comparison of some JavaScript templating engines on a short
+  template: 7 DOM nodes ... 7 interpolated values.][link]
+
+  [link]: http://jsperf.com/dom-vs-innerhtml-based-templating
 
 ## License 
 
