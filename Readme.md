@@ -41,7 +41,9 @@ via npm:
     jst.render('Hello {{ it.name }}', {name: 'jst'});
 
     // Filters
-    jst.render('Hello {{ e(it.name) }}', {name: '<strong>jst</strong>'});
+    jst.render('Hello {{ it.name|e }}', {name: '<strong>jst</strong>'});
+    jst.render('{{ it.entry|e|linebreaks }}', {entry: '...'});
+    jst.render('{{ it.value|add(100) }}', {value: 100});
 
     // Client side
     <script src="jst.js"></script>
