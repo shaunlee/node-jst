@@ -22,7 +22,7 @@ via npm:
 
 ## Usage
 
-    var jst = require('node-jst');
+    var jst = require('jst');
 
     // Render a string
     jst.render('Hello {{ name }}', {name: 'jst'});
