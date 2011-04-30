@@ -17,26 +17,94 @@ var _cache = {},
 
 const htmlCodes = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'},
       htmlre = /[&<>"]/g,
-      htmlEscape = function (src) { return htmlCodes[src]; };
+      htmlEscape = function (src) { return htmlCodes[src]; },
+      linere = /(\r\n|\r|\n)/g,
+      filterCodes = {
+        'e(': 'jst_filter_escape(',
+        'br(': 'jst_filter_linebreaks(',
+        'md(': 'jst_filter_markdown(',
+        '_(': 'jst_filter_gettext('
+      },
+      filterre = /^(e|br|md|_)\(/g,
+      filterConvert = function(src) { return filterCodes[src]; };
 
+var convert = exports.convert = function(src) {
+  return src.replace(filterre, filterConvert);
+}
+
+// e(src)
 jst_filter_escape = function(src) {
   return typeof src !== 'string' ? src : src.replace(htmlre, htmlEscape);
 }
 
+// br(src)
+jst_filter_linebreaks = function(src) {
+  return src.replace(linere, '<br>$1');
+}
+
+// md(src)
+jst_filter_markdown = function(src) {
+  return src; // TODO:
+}
+
+// _(src)
+jst_filter_gettext = function(src) {
+  return src; // TODO:
+}
+
 // compiler
 
+const prefixes = {
+        s: {s: '', c: '"; ', v: '" + '},
+        c: {s: ' out += "', c: ' ', v: ' out += '},
+        v: {s: ' + "', c: '; ', v: ' + '},
+        end: {s: '"; ', c: ' ', v: '; '}
+      },
+      codere = /\{[%\{] (.+?) [%\}]\}/g;
+
 var compile = exports.compile = function(ctx) {
+  var m, s, i = 0, code = 'var out = "', last = 's';
+
   _options.useIt = /{{ (e\()?it\./.test(ctx);
 
-  var code = (_options.useIt ? 'var out = "' : 'var out = ""; with(it) { out += "')
-    + ctx.replace(/[\t\r\n]/g, '')
-        .replace(/"/g, '\\"')
-        .replace(/\{\{ (.+?) \}\}/g, '"; out += $1; out += "')
-        .replace(/\{% (.+?) %\}/g, '"; $1 out += "')
-        .replace(/\{#.+?#\}/g, '')
-        .replace(/ e\(/g, ' jst_filter_escape(')
-    + (_options.useIt ? '"; return out;' : '"; } return out;');
-  return new Function('it', code.replace(' out += "";', ''));
+  ctx = ctx.replace(/[\t\r\n]/g, '').replace(/\{#.+?#\}/g, '')
+
+  if (!_options.useIt) {
+    code += '"; with(it) {';
+    last = 'c';
+  }
+
+  while ((m = codere.exec(ctx)) !== null) {
+    if (m.index > 0) {
+      code += prefixes[last]['s'] + ctx.substring(i, m.index).replace(/"/g, '\\"');
+      last = 's';
+    }
+
+    if (m[0].indexOf('{%') === 0) {
+      code += prefixes[last]['c'] + m[1];
+      last = 'c';
+    } else if (m[0].indexOf('{{') === 0) {
+      code += prefixes[last]['v'] + convert(m[1]);
+      last = 'v';
+    }
+
+    i = m.index + m[0].length;
+  }
+
+  if (i < ctx.length) {
+    code += prefixes[last]['s'] + ctx.substring(i).replace(/"/g, '\\"');
+    last = 's';
+  }
+
+  code += prefixes['end'][last];
+
+  if (!_options.useIt)
+    code += '} ';
+
+  code += 'return out;';
+  //console.log(code);
+
+  return new Function('it', code);
 }
 
 var render = exports.render = function(ctx, args) {
