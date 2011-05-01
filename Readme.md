@@ -43,7 +43,16 @@ via npm:
     // Filters
     jst.render('Hello {{ it.name|e }}', {name: '<strong>jst</strong>'});
     jst.render('{{ it.entry|e|linebreaks }}', {entry: '...'});
-    jst.render('{{ it.value|add(100) }}', {value: 100});
+    jst.render('{{ it.value|add(123) }}', {value: 123});
+
+    // Custom filters
+    jst.addFilter('filterName', function(src) { ... });
+    jst.addFilters({anotherFilter: function(src) { ... }});
+    jst.render('{{ it.value|filterName }}', {value: 123});
+    jst.render('{{ it.value|anotherFilter }}', {value: 123});
+    // or
+    jst.addFilter('filterName', function(arg1, arg2, arg3) { return function(src) { ... }});
+    jst.render('{{ it.value|filterName(1, 2, 3) }}', {value: 123});
 
     // Client side
     <script src="jst.js"></script>
