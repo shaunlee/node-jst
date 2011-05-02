@@ -4,6 +4,74 @@
  * MIT Licensed
  */
 
+// filters
+
+var htmlCodes = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'},
+    htmlre = /&(?!\w+;)|<|>|"/g,
+    htmlEscape = function (src) { return htmlCodes[src]; },
+    linere = /(\r\n|\r|\n)/g;
+
+var filters = {};
+
+;(function(exports) {
+
+exports.convert = function(src) {
+  return src.split('|').reduce(function(varname, filter) {
+    return 'filters.' + filter + '(' + varname + ')';
+  });
+}
+
+exports.e = exports.escape = function(src) {
+  return typeof src !== 'string' ? src : src.replace(htmlre, htmlEscape);
+}
+
+exports.linebreaks = function(src) {
+  return '<p>' + src.split(/\r\n|\n/g).join('</p><p>') + '</p>';
+}
+
+exports.linebreaksbr = function(src) {
+  return src.replace(linere, '<br>$1');
+}
+
+exports.add = function(value) {
+  return function(src) { return Number(value) + Number(src); };
+}
+
+})(filters);
+
+// i18n
+
+var i18n = {};
+
+;(function(exports) {
+
+/**
+ * gettext('Hello {name}', {name: 'jst'})
+ */
+exports.gettext = function(ctx, args) {
+  // TODO:
+
+  for (var name in args) {
+    var re = RegExp('\\{' + name + '\\}', 'g');
+    ctx = ctx.replace(re, args[name]);
+  }
+  return ctx;
+}
+
+/**
+ * ngettext('There is a template', 'There are {n} templates', n)
+ */
+exports.ngettext = function(singular, plural, n) {
+  var ctx = n === 1 ? singular : plural;
+
+  // TODO:
+
+  return ctx.replace(/\{n\}/g, n);
+}
+})(i18n);
+
+// compiler
+
 var jst = {};
 
 ;(function(exports) {
@@ -13,78 +81,48 @@ var _cache = {},
       useIt: false
     };
 
-// filters
-
-const htmlCodes = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'},
-      htmlre = /[&<>"]/g,
-      htmlEscape = function (src) { return htmlCodes[src]; },
-      linere = /(\r\n|\r|\n)/g,
-      filterCodes = {
-        'e(': 'jst_filter_escape(',
-        'br(': 'jst_filter_linebreaks(',
-        'md(': 'jst_filter_markdown(',
-        '_(': 'jst_filter_gettext('
-      },
-      filterre = /^(e|br|md|_)\(/g,
-      filterConvert = function(src) { return filterCodes[src]; };
-
-var convert = exports.convert = function(src) {
-  return src.replace(filterre, filterConvert);
+exports.addFilter = function(name, fn) {
+  filters[name] = fn;
 }
 
-// e(src)
-jst_filter_escape = function(src) {
-  return typeof src !== 'string' ? src : src.replace(htmlre, htmlEscape);
+exports.addFilters = function(newFilters) {
+  for (var name in newFilters)
+    filters[name] = newFilters[name];
 }
 
-// br(src)
-jst_filter_linebreaks = function(src) {
-  return src.replace(linere, '<br>$1');
-}
-
-// md(src)
-jst_filter_markdown = function(src) {
-  return src; // TODO:
-}
-
-// _(src)
-jst_filter_gettext = function(src) {
-  return src; // TODO:
-}
-
-// compiler
-
-const prefixes = {
-        s: {s: '', c: '"; ', v: '" + '},
-        c: {s: ' out += "', c: ' ', v: ' out += '},
-        v: {s: ' + "', c: '; ', v: ' + '},
-        end: {s: '"; ', c: ' ', v: '; '}
-      },
-      codere = /\{[%\{] (.+?) [%\}]\}/g;
+var prefixes = {
+      n: {s: '"', c: '', v: ''},
+      s: {s: '', c: '"; ', v: '" + '},
+      c: {s: ' out += "', c: ' ', v: ' out += '},
+      v: {s: ' + "', c: '; ', v: ' + '},
+      end: {s: '"; ', c: ' ', v: '; '}
+    },
+    codere = /\{[%\{] (.+?) [%\}]\}/g;
 
 var compile = exports.compile = function(ctx) {
-  var m, s, i = 0, code = 'var out = "', last = 's';
+  var m, i = 0, code = 'var out = ', last = 'n';
 
   _options.useIt = /{{ (e\()?it\./.test(ctx);
 
   ctx = ctx.replace(/[\t\r\n]/g, '').replace(/\{#.+?#\}/g, '')
 
   if (!_options.useIt) {
-    code += '"; with(it) {';
+    code += '""; with(it) {';
     last = 'c';
   }
 
   while ((m = codere.exec(ctx)) !== null) {
-    if (m.index > 0) {
+    if (m.index > 0 && m.index > i) {
       code += prefixes[last]['s'] + ctx.substring(i, m.index).replace(/"/g, '\\"');
       last = 's';
     }
 
     if (m[0].indexOf('{%') === 0) {
       code += prefixes[last]['c'] + m[1];
+      if (/\)$/.test(m[1])) code += ';';
       last = 'c';
     } else if (m[0].indexOf('{{') === 0) {
-      code += prefixes[last]['v'] + convert(m[1]);
+      code += prefixes[last]['v'] + filters.convert(m[1]);
       last = 'v';
     }
 
@@ -104,7 +142,11 @@ var compile = exports.compile = function(ctx) {
   code += 'return out;';
   //console.log(code);
 
-  return new Function('it', code);
+  var fn = new Function('it, _, _n, filters', code);
+
+  return function(args) {
+    return fn.call(this, args, i18n.gettext, i18n.ngettext, filters);
+  }
 }
 
 var render = exports.render = function(ctx, args) {
