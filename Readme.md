@@ -54,6 +54,9 @@ via npm:
     jst.addFilter('filterName', function(arg1, arg2, arg3) { return function(src) { ... }});
     jst.render('{{ it.value|filterName(1, 2, 3) }}', {value: 123});
 
+    // i18n
+    jst.render('{{ _("Hello {it.name}")|e }}', {name: '<strong>jst</strong>'});
+
     // Client side
     <script src="jst.js"></script>
     <script>
