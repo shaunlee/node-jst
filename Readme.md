@@ -55,6 +55,9 @@ via npm:
     jst.render('{{ it.value|filterName(1, 2, 3) }}', {value: 123});
 
     // i18n
+    jst.configure({
+      locales: {lang: 'zh_CN', locales: __dirname + '/locales'}
+    });
     jst.render('{{ _("Hello {it.name}")|e }}', {name: '<strong>jst</strong>'});
 
     // Client side
