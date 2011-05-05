@@ -13,6 +13,9 @@ via npm:
 
   * Automatically caching of intermediate JavaScript
   * Unbuffered code for embed codes etc `{% code %}` or `{{ variable }}`
+  * Enforcing coding standard, for example `{{ variable }}` is correct, but `{{variable}}` is wrong
+  * Customizable filters
+  * Internationalization
 
 ## Example
 
