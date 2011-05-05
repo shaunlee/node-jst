@@ -3,19 +3,25 @@
  * Module dependencies.
  */
 
-var express = require('express');
+var express = require('express'),
+    jst = require('jst');
 
 var app = module.exports = express.createServer();
 
 // Configuration
 
+jst.configure({
+  locales: {locales: __dirname + '/locales'}
+});
+
 app.configure(function(){
   app.set('views', __dirname + '/views');
-  app.set('view engine', 'jst');
-  // Uncomment if you want to use .html instead of .jst'
-  // app.register('.html', require('jst'))
+  //app.set('view engine', 'jst');
+  app.register('.html', jst); // Use this for i18n
   app.use(express.bodyParser());
   app.use(express.methodOverride());
+  app.use(function(req, res, next) { req.lang = 'zh_CN'; next(); });
+  app.use(jst.detector);
   app.use(app.router);
   app.use(express.static(__dirname + '/public'));
 });
@@ -31,7 +37,7 @@ app.configure('production', function(){
 // Routes
 
 app.get('/', function(req, res){
-  res.render('index', {
+  res.render('index.html', {
     title: 'Express'
   });
 });

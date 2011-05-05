@@ -1,0 +1,5 @@
+{
+  "Hello {name}": "你好 {name}",
+  "There is a car": "有一辆车",
+  "There are {n} cars": "有{n}辆车"
+}
