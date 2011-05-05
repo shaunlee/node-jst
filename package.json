@@ -1,8 +1,9 @@
 {
   "name": "jst",
   "description": "Node JavaScript Template, A pretty high performance template engine",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "author": "Shaun Li <shonhen@gmail.com>",
   "keywords": ["template", "engine", "jst"],
-  "main": "./lib/jst.js"
+  "main": "./lib/jst.js",
+  "dependencies": {"locales": ">0.0.0"}
 }
