@@ -39,37 +39,6 @@ exports.add = function(value) {
 
 })(filters);
 
-// i18n
-
-var i18n = {};
-
-;(function(exports) {
-
-/**
- * gettext('Hello {name}', {name: 'jst'})
- */
-exports.gettext = function(ctx, args) {
-  // TODO:
-
-  for (var name in args) {
-    var re = RegExp('\\{' + name + '\\}', 'g');
-    ctx = ctx.replace(re, args[name]);
-  }
-  return ctx;
-}
-
-/**
- * ngettext('There is a template', 'There are {n} templates', n)
- */
-exports.ngettext = function(singular, plural, n) {
-  var ctx = n === 1 ? singular : plural;
-
-  // TODO:
-
-  return ctx.replace(/\{n\}/g, n);
-}
-})(i18n);
-
 // compiler
 
 var jst = {};
@@ -142,10 +111,10 @@ var compile = exports.compile = function(ctx) {
   code += 'return out;';
   //console.log(code);
 
-  var fn = new Function('it, _, _n, filters', code);
+  var fn = new Function('it, filters', code);
 
   return function(args) {
-    return fn.call(this, args, i18n.gettext, i18n.ngettext, filters);
+    return fn.call(this, args, filters);
   }
 }
 
