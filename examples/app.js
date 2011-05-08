@@ -4,24 +4,24 @@
  */
 
 var express = require('express'),
-    jst = require('jst');
+    jst = require('jst'),
+    locales = require('locales');
 
 var app = module.exports = express.createServer();
 
 // Configuration
 
-jst.configure({
-  locales: {locales: __dirname + '/locales'}
+locales.configure({
+  locales: __dirname + '/locales'
 });
 
 app.configure(function(){
   app.set('views', __dirname + '/views');
-  //app.set('view engine', 'jst');
-  app.register('.html', jst); // Use this for i18n
+  app.set('view engine', 'jst');
   app.use(express.bodyParser());
   app.use(express.methodOverride());
   app.use(function(req, res, next) { req.lang = 'zh_CN'; next(); });
-  app.use(jst.detector);
+  app.use(locales.detector); // for i18n
   app.use(app.router);
   app.use(express.static(__dirname + '/public'));
 });
@@ -34,10 +34,15 @@ app.configure('production', function(){
   app.use(express.errorHandler()); 
 });
 
+app.helpers({
+  _: locales.gettext,
+  _n: locales.ngettext
+});
+
 // Routes
 
 app.get('/', function(req, res){
-  res.render('index.html', {
+  res.render('index', {
     title: 'Express'
   });
 });
