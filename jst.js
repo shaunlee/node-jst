@@ -20,7 +20,7 @@ window['jst'] = {};
         useIt: false
       };
 
-  var filters = exports.filters = {};
+  var filters = exports['filters'] = {};
 
   filters.convert = function(src) {
     return src.split('|').reduce(function(varname, filter) {
@@ -28,19 +28,19 @@ window['jst'] = {};
     });
   }
 
-  filters.e = filters.escape = function(src) {
+  filters['e'] = filters['escape'] = function(src) {
     return typeof src !== 'string' ? src : src.replace(htmlre, htmlEscape);
   }
 
-  filters.linebreaks = function(src) {
+  filters['linebreaks'] = function(src) {
     return '<p>' + src.split(/\r\n|\n/g).join('</p><p>') + '</p>';
   }
 
-  filters.linebreaksbr = function(src) {
+  filters['linebreaksbr'] = function(src) {
     return src.replace(linere, '<br>$1');
   }
 
-  filters.add = function(value) {
+  filters['add'] = function(value) {
     return function(src) { return Number(value) + Number(src); };
   }
 
