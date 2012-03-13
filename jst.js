@@ -6,7 +6,7 @@
 
 // compiler
 
-var jst = {};
+window['jst'] = {};
 
 ;(function(exports) {
 
@@ -44,17 +44,18 @@ var jst = {};
     return function(src) { return Number(value) + Number(src); };
   }
 
-  var prefixes = {
-        n: {s: '"', c: '', v: ''},
-        s: {s: '', c: '"; ', v: '" + '},
-        c: {s: ' out += "', c: ' ', v: ' out += '},
-        v: {s: ' + "', c: '; ', v: ' + '},
-        end: {s: '"; ', c: ' ', v: '; '}
-      },
+  var prefixes = [
+        // s         , c     , v
+        [''          , '"; ' , '" + '     ] , // s
+        [' out += "' , ' '   , ' out += ' ] , // c
+        [' + "'      , '; '  , ' + '      ] , // v
+        ['"'         , ''    , ''         ] , // n
+        ['"; '       , ' '   , '; '       ]   // end
+      ],
       codere = /\{[%\{] (.+?) [%\}]\}/g;
 
   var compile = exports.compile = function(ctx) {
-    var m, i = 0, code = 'var out = ', last = 'n';
+    var m, i = 0, code = 'var out = ', last = 3 /* n */;
 
     _options.useIt = /{{ (e\()?it\./.test(ctx);
 
@@ -62,33 +63,33 @@ var jst = {};
 
     if (!_options.useIt) {
       code += '""; with(it) {';
-      last = 'c';
+      last = 1 /* c */;
     }
 
     while ((m = codere.exec(ctx)) !== null) {
       if (m.index > 0 && m.index > i) {
-        code += prefixes[last]['s'] + ctx.substring(i, m.index).replace(/"/g, '\\"');
-        last = 's';
+        code += prefixes[last][0 /* s */] + ctx.substring(i, m.index).replace(/"/g, '\\"');
+        last = 0 /* s */;
       }
 
       if (m[0].indexOf('{%') === 0) {
-        code += prefixes[last]['c'] + m[1];
+        code += prefixes[last][1 /* c */] + m[1];
         if (/\)$/.test(m[1])) code += ';';
-        last = 'c';
+        last = 1 /* c */;
       } else if (m[0].indexOf('{{') === 0) {
-        code += prefixes[last]['v'] + filters.convert(m[1]);
-        last = 'v';
+        code += prefixes[last][2 /* v */] + filters.convert(m[1]);
+        last = 2 /* v */;
       }
 
       i = m.index + m[0].length;
     }
 
     if (i < ctx.length) {
-      code += prefixes[last]['s'] + ctx.substring(i).replace(/"/g, '\\"');
-      last = 's';
+      code += prefixes[last][0 /* s */] + ctx.substring(i).replace(/"/g, '\\"');
+      last = 0 /* s */;
     }
 
-    code += prefixes['end'][last];
+    code += prefixes[4 /* end */][last];
 
     if (!_options.useIt)
       code += '} ';
