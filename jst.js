@@ -22,7 +22,7 @@ window['jst'] = {};
 
   var filters = exports['filters'] = {};
 
-  filters.convert = function(src) {
+  function convertFilters(src) {
     return src.split('|').reduce(function(varname, filter) {
         return 'filters.' + filter + '(' + varname + ')';
     });
@@ -77,7 +77,7 @@ window['jst'] = {};
         if (/\)$/.test(m[1])) code += ';';
         last = 1 /* c */;
       } else if (m[0].indexOf('{{') === 0) {
-        code += prefixes[last][2 /* v */] + filters.convert(m[1]);
+        code += prefixes[last][2 /* v */] + convertFilters(m[1]);
         last = 2 /* v */;
       }
 
