@@ -22,39 +22,26 @@ var jst = {};
 
   var filters = exports.filters = {};
 
-  (function(exports) {
-
-    exports.convert = function(src) {
-      return src.split('|').reduce(function(varname, filter) {
+  filters.convert = function(src) {
+    return src.split('|').reduce(function(varname, filter) {
         return 'filters.' + filter + '(' + varname + ')';
-      });
-    }
-
-    exports.e = exports.escape = function(src) {
-      return typeof src !== 'string' ? src : src.replace(htmlre, htmlEscape);
-    }
-
-    exports.linebreaks = function(src) {
-      return '<p>' + src.split(/\r\n|\n/g).join('</p><p>') + '</p>';
-    }
-
-    exports.linebreaksbr = function(src) {
-      return src.replace(linere, '<br>$1');
-    }
-
-    exports.add = function(value) {
-      return function(src) { return Number(value) + Number(src); };
-    }
-
-  })(exports.filters);
-
-  exports.addFilter = function(name, fn) {
-    filters[name] = fn;
+    });
   }
 
-  exports.addFilters = function(newFilters) {
-    for (var name in newFilters)
-      filters[name] = newFilters[name];
+  filters.e = filters.escape = function(src) {
+    return typeof src !== 'string' ? src : src.replace(htmlre, htmlEscape);
+  }
+
+  filters.linebreaks = function(src) {
+    return '<p>' + src.split(/\r\n|\n/g).join('</p><p>') + '</p>';
+  }
+
+  filters.linebreaksbr = function(src) {
+    return src.replace(linere, '<br>$1');
+  }
+
+  filters.add = function(value) {
+    return function(src) { return Number(value) + Number(src); };
   }
 
   var prefixes = {
