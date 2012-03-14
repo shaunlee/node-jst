@@ -5,5 +5,8 @@
   "author": "Shaun Li <shonhen@gmail.com>",
   "keywords": ["template", "engine", "jst"],
   "main": "./lib/jst.js",
-  "dependencies": {"locales": ">0.0.1"}
+  "dependencies": {
+    "locales": ">0.0.1"
+  , "commander": ">0.0.1"
+  }
 }
