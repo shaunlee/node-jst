@@ -58,7 +58,7 @@ var jst = {};
   }
 
   var prefixes = {
-        n: {s: '"', c: '', v: ''},
+        n: {s: '"', c: '""; ', v: ''},
         s: {s: '', c: '"; ', v: '" + '},
         c: {s: ' out += "', c: ' ', v: ' out += '},
         v: {s: ' + "', c: '; ', v: ' + '},
@@ -71,7 +71,7 @@ var jst = {};
 
     _options.useIt = /{{ (e\()?it\./.test(ctx);
 
-    ctx = ctx.replace(/[\t\r\n]/g, '').replace(/\{#.+?#\}/g, '')
+    ctx = ctx.replace(/[\t\r\n]/g, ' ').replace(/\{#.+?#\}/g, ' ')
 
     if (!_options.useIt) {
       code += '""; with(it) {';
