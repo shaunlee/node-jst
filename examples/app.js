@@ -7,7 +7,7 @@ var express = require('express'),
     jst = require('jst'),
     locales = require('locales');
 
-var app = module.exports = express.createServer();
+var app = module.exports = express();
 
 // Configuration
 
@@ -18,6 +18,7 @@ locales.configure({
 app.configure(function(){
   app.set('views', __dirname + '/views');
   app.set('view engine', 'jst');
+  app.engine('jst', jst.renderFile);
   app.use(express.bodyParser());
   app.use(express.methodOverride());
   app.use(function(req, res, next) { req.lang = 'zh_CN'; next(); });
@@ -34,10 +35,10 @@ app.configure('production', function(){
   app.use(express.errorHandler()); 
 });
 
-app.helpers({
-  _: locales.gettext,
-  _n: locales.ngettext
-});
+app.locals = {
+    _: locales.gettext,
+    _n: locales.ngettext
+};
 
 // Routes
 
@@ -51,5 +52,5 @@ app.get('/', function(req, res){
 
 if (!module.parent) {
   app.listen(3000);
-  console.log("Express server listening on port %d", app.address().port);
+  console.log("Express server listening on port %d", 3000);
 }
