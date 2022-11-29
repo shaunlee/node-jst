@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+
+var program = require('commander')
+  , fs = require('fs')
+  , jst = require('../index')
+
+program
+  .version(jst.version)
+  .parse(process.argv);
+
+var filenames = program.args;
+
+filenames.forEach(function(filename){
+    var template = fs.readFileSync(filename, 'utf8')
+
+    console.log(jst.compile(template, true));
+})
