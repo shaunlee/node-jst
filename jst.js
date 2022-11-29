@@ -6,7 +6,7 @@
 
 // compiler
 
-var jst = {};
+window['jst'] = {};
 
 ;(function(exports) {
 
@@ -20,54 +20,42 @@ var jst = {};
         useIt: false
       };
 
-  var filters = exports.filters = {};
+  var filters = exports['filters'] = {};
 
-  (function(exports) {
-
-    exports.convert = function(src) {
-      return src.split('|').reduce(function(varname, filter) {
+  function convertFilters(src) {
+    return src.split('|').reduce(function(varname, filter) {
         return 'filters.' + filter + '(' + varname + ')';
-      });
-    }
-
-    exports.e = exports.escape = function(src) {
-      return typeof src !== 'string' ? src : src.replace(htmlre, htmlEscape);
-    }
-
-    exports.linebreaks = function(src) {
-      return '<p>' + src.split(/\r\n|\n/g).join('</p><p>') + '</p>';
-    }
-
-    exports.linebreaksbr = function(src) {
-      return src.replace(linere, '<br>$1');
-    }
-
-    exports.add = function(value) {
-      return function(src) { return Number(value) + Number(src); };
-    }
-
-  })(exports.filters);
-
-  exports.addFilter = function(name, fn) {
-    filters[name] = fn;
+    });
   }
 
-  exports.addFilters = function(newFilters) {
-    for (var name in newFilters)
-      filters[name] = newFilters[name];
+  filters['e'] = filters['escape'] = function(src) {
+    return typeof src !== 'string' ? src : src.replace(htmlre, htmlEscape);
   }
 
-  var prefixes = {
-        n: {s: '"', c: '', v: ''},
-        s: {s: '', c: '"; ', v: '" + '},
-        c: {s: ' out += "', c: ' ', v: ' out += '},
-        v: {s: ' + "', c: '; ', v: ' + '},
-        end: {s: '"; ', c: ' ', v: '; '}
-      },
+  filters['linebreaks'] = function(src) {
+    return '<p>' + src.split(/\r\n|\n/g).join('</p><p>') + '</p>';
+  }
+
+  filters['linebreaksbr'] = function(src) {
+    return src.replace(linere, '<br>$1');
+  }
+
+  filters['add'] = function(value) {
+    return function(src) { return Number(value) + Number(src); };
+  }
+
+  var prefixes = [
+        // s         , c     , v
+        [''          , '"; ' , '" + '     ] , // s
+        [' out += "' , ' '   , ' out += ' ] , // c
+        [' + "'      , '; '  , ' + '      ] , // v
+        ['"'         , ''    , ''         ] , // n
+        ['"; '       , ' '   , '; '       ]   // end
+      ],
       codere = /\{[%\{] (.+?) [%\}]\}/g;
 
   var compile = exports.compile = function(ctx) {
-    var m, i = 0, code = 'var out = ', last = 'n';
+    var m, i = 0, code = 'var out = ', last = 3 /* n */;
 
     _options.useIt = /{{ (e\()?it\./.test(ctx);
 
@@ -75,33 +63,33 @@ var jst = {};
 
     if (!_options.useIt) {
       code += '""; with(it) {';
-      last = 'c';
+      last = 1 /* c */;
     }
 
     while ((m = codere.exec(ctx)) !== null) {
       if (m.index > 0 && m.index > i) {
-        code += prefixes[last]['s'] + ctx.substring(i, m.index).replace(/"/g, '\\"');
-        last = 's';
+        code += prefixes[last][0 /* s */] + ctx.substring(i, m.index).replace(/"/g, '\\"');
+        last = 0 /* s */;
       }
 
       if (m[0].indexOf('{%') === 0) {
-        code += prefixes[last]['c'] + m[1];
+        code += prefixes[last][1 /* c */] + m[1];
         if (/\)$/.test(m[1])) code += ';';
-        last = 'c';
+        last = 1 /* c */;
       } else if (m[0].indexOf('{{') === 0) {
-        code += prefixes[last]['v'] + filters.convert(m[1]);
-        last = 'v';
+        code += prefixes[last][2 /* v */] + convertFilters(m[1]);
+        last = 2 /* v */;
       }
 
       i = m.index + m[0].length;
     }
 
     if (i < ctx.length) {
-      code += prefixes[last]['s'] + ctx.substring(i).replace(/"/g, '\\"');
-      last = 's';
+      code += prefixes[last][0 /* s */] + ctx.substring(i).replace(/"/g, '\\"');
+      last = 0 /* s */;
     }
 
-    code += prefixes['end'][last];
+    code += prefixes[4 /* end */][last];
 
     if (!_options.useIt)
       code += '} ';
