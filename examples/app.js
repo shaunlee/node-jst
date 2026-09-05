@@ -4,7 +4,6 @@
  */
 
 var express = require('express'),
-    fs = require('fs'),
     path = require('path'),
     jst = require('..');   // `require('jst')` in your own app
 
@@ -27,8 +26,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // of its own, so the two views are composed here instead.
 
 app.locals.partial = function(name) {
-  var file = path.join(app.get('views'), '_' + name + '.jst');
-  return jst.render(fs.readFileSync(file, 'utf8'), app.locals);
+  return jst.renderFileSync(path.join(app.get('views'), '_' + name + '.jst'), app.locals);
 };
 
 function renderPage(res, next, view, options) {
