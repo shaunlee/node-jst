@@ -15,6 +15,9 @@ function tmpfile(name, ctx) {
 
 // --- compile / render basics ---
 
+test('renders plain text unchanged', function() {
+  assert.equal(jst.render('Hello world'), 'Hello world');
+});
 
 test('interpolates with `with(it)` scoping', function() {
   assert.equal(jst.render('Hello {{ name }}', {name: 'jst'}), 'Hello jst');
@@ -35,6 +38,11 @@ test('interpolation at the very start and end of a template', function() {
   assert.equal(jst.render('{{ a }}{{ b }}', {a: 'x', b: 'y'}), 'xy');
 });
 
+test('runs embedded code blocks', function() {
+  assert.equal(
+    jst.render('{% for (var i = 0; i < 3; i++) { %}[{{ i }}]{% } %}'),
+    '[0][1][2]');
+});
 
 test('code blocks can branch on data', function() {
   var t = '{% if (user) { %}<h2>{{ user.name }}</h2>{% } %}';
@@ -42,6 +50,9 @@ test('code blocks can branch on data', function() {
   assert.equal(jst.render(t, {user: null}), '');
 });
 
+test('strips {# comments #}', function() {
+  assert.equal(jst.render('a{# nope #}b'), 'ab');
+});
 
 test('compile returns a reusable function', function() {
   var fn = jst.compile('Hello {{ it.name }}');
@@ -61,6 +72,10 @@ test('literal double quotes survive', function() {
   assert.equal(jst.render('say "hi" {{ a }}', {a: 1}), 'say "hi" 1');
 });
 
+test('literal backslashes survive', function() {
+  assert.equal(jst.render('C:\\path\\to {{ a }}', {a: 1}), 'C:\\path\\to 1');
+  assert.equal(jst.render('content:"\\f101"'), 'content:"\\f101"');
+});
 
 // --- filters ---
 
@@ -68,6 +83,9 @@ test('escape filter', function() {
   assert.equal(jst.render('{{ it.v|e }}', {v: '<b>&</b>'}), '&lt;b&gt;&amp;&lt;/b&gt;');
 });
 
+test('escape filter escapes single quotes', function() {
+  assert.equal(jst.render("{{ it.v|e }}", {v: "it's"}), 'it&#39;s');
+});
 
 test('escape filter passes non-strings through', function() {
   assert.equal(jst.render('{{ it.v|e }}', {v: 42}), '42');
@@ -166,7 +184,22 @@ test('renderFile picks up a changed file', function(t, done) {
   });
 });
 
+test('renderFile calls back exactly once when the template throws', function(t, done) {
+  var p = tmpfile('e.jst', '{{ it.a.b.c }}'),
+      calls = 0;
+  jst.renderFile(p, {}, function(err) {
+    calls++;
+    assert.ok(err, 'should report the render error');
+  });
+  setTimeout(function() {
+    assert.equal(calls, 1);
+    done();
+  }, 50);
+});
 
+test('version matches package.json', function() {
+  assert.equal(jst.version, require('../package.json').version);
+});
 
 
 test('renderFile stays asynchronous on a cache hit', function(t, done) {
