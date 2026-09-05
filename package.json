@@ -35,9 +35,6 @@
     "test": "node --test test/*.test.js",
     "build": "node bin/build-browser"
   },
-  "dependencies": {
-    "commander": "^15.0.0"
-  },
   "devDependencies": {
     "dot": "^1.1.3",
     "ejs": "^6.0.1",

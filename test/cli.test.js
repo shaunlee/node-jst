@@ -13,6 +13,16 @@ function run(args) {
   return execFileSync(process.execPath, [bin].concat(args), {encoding: 'utf8'});
 }
 
+// Everything the CLI writes when it exits non-zero.
+function runFail(args) {
+  try {
+    run(args);
+  } catch (e) {
+    return {status: e.status, stderr: e.stderr};
+  }
+  assert.fail('expected a non-zero exit');
+}
+
 function tmpfile(name, ctx) {
   var p = path.join(tmp, name);
   fs.writeFileSync(p, ctx, 'utf8');
@@ -41,4 +51,37 @@ test('the CLI compiles several templates at once', function() {
 
 test('the CLI reports missing arguments', function() {
   assert.throws(function() { run([]); }, /missing required argument/);
+});
+
+test('the CLI prints usage', function() {
+  var out = run(['--help']);
+
+  assert.match(out, /^Usage: jst \[options\] <file\.\.\.>/);
+  assert.match(out, /--version/);
+});
+
+test('the CLI rejects an unknown option', function() {
+  var r = runFail(['--nope']);
+
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /unknown option '--nope'/);
+  assert.match(r.stderr, /Usage: jst/, 'and shows how to use it');
+});
+
+test('the CLI reports a missing file without a stack trace', function() {
+  var r = runFail([path.join(tmp, 'absent.jst')]);
+
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /no such file/);
+  assert.doesNotMatch(r.stderr, /at Object\./, 'no stack trace');
+});
+
+test('the CLI reports a broken template with its position', function() {
+  var p = tmpfile('broken.jst', 'x\n{% if ( %}\n{% } %}'),
+      r = runFail([p]);
+
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /unbalanced "\("/);
+  assert.match(r.stderr, /broken\.jst:2:1/, 'names the file and line');
+  assert.doesNotMatch(r.stderr, /at Object\./, 'no stack trace');
 });

@@ -61,6 +61,7 @@ via npm:
 ## Features
 
   * Compiles templates to plain JavaScript functions, cached automatically
+  * No runtime dependencies
   * Unbuffered code for embed codes etc `{% code %}` or `{{ variable }}`
   * Enforcing coding standard: `{{ variable }}` is correct, `{{variable}}` is
     a compile error rather than something that reaches the page
@@ -198,7 +199,8 @@ via npm:
     jst path/to/some.jst
 
  The emitted source expects a `jst` global carrying the filters, which is what
- the browser build provides.
+ the browser build provides. A template that will not compile is reported with
+ its file, line and column, and the command exits non-zero.
 
 ## Development
 

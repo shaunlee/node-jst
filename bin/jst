@@ -1,22 +1,60 @@
 #!/usr/bin/env node
 
 var fs = require('fs')
-  , { Command } = require('commander')
   , jst = require('../index')
 
-var program = new Command()
+var usage = 'Usage: jst [options] <file...>\n'
+  + '\n'
+  + 'Compile jst templates to standalone JavaScript functions, one per file,\n'
+  + 'written to stdout. The emitted source expects a `jst` global carrying\n'
+  + 'the filters, which is what the browser build provides.\n'
+  + '\n'
+  + 'Options:\n'
+  + '  -V, --version  output the version number\n'
+  + '  -h, --help     display this help\n'
 
-program
-  .name('jst')
-  .description('Compile jst templates to standalone JavaScript functions')
-  .argument('<file...>', 'templates to compile')
-  .version(jst.version)
-  .action(function(filenames){
-    filenames.forEach(function(filename){
-      var template = fs.readFileSync(filename, 'utf8')
+var filenames = []
 
-      console.log(jst.compile(template, true))
-    })
-  })
+for (var i = 2; i < process.argv.length; i++) {
+  var arg = process.argv[i]
 
-program.parse()
+  if (arg === '-h' || arg === '--help') {
+    process.stdout.write(usage)
+    process.exit(0)
+  } else if (arg === '-V' || arg === '--version') {
+    console.log(jst.version)
+    process.exit(0)
+  } else if (arg.charAt(0) === '-') {
+    usageError("unknown option '" + arg + "'")
+  } else {
+    filenames.push(arg)
+  }
+}
+
+if (filenames.length === 0) usageError("missing required argument 'file'")
+
+filenames.forEach(function(filename){
+  var template
+
+  try {
+    template = fs.readFileSync(filename, 'utf8')
+  } catch (e) {
+    abort('jst: ' + (e.code === 'ENOENT' ? 'no such file: ' + filename : e.message))
+  }
+
+  try {
+    console.log(jst.compile(template, true, filename))
+  } catch (e) {
+    abort(e.message)
+  }
+})
+
+function usageError(message) {
+  process.stderr.write('jst: ' + message + '\n\n' + usage)
+  process.exit(1)
+}
+
+function abort(message) {
+  process.stderr.write(message + '\n')
+  process.exit(1)
+}
