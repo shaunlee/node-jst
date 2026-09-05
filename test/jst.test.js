@@ -333,4 +333,25 @@ test('both variable styles may be mixed in one template', function() {
 
 // --- browser bundle ---
 
+test('jst.js is a current build of lib/', function() {
+  var bundle = require('../bin/build-browser');
+  assert.equal(fs.readFileSync(path.join(__dirname, '..', 'jst.js'), 'utf8'), bundle(),
+    'jst.js is stale; run `npm run build`');
+});
 
+test('the browser bundle behaves like the node build', function() {
+  var browser = require('../jst.js'),
+      cases = [
+        ['Hello {{ it.name }}', {name: 'b'}],
+        ['Hello {{ name }}', {name: 'b'}],
+        ['{% for (var i = 0; i < it.n; i++) { %}<li>{{ it.rows[i]|e }}</li>{% } %}',
+         {n: 2, rows: ['a<b>', 'c&d']}],
+        ['C:\\path {{ it.a }}', {a: 1}],
+        ['<pre>\n x\n</pre>\n<p>y</p>', {}],
+        ['{% // note %}kept', {}]
+      ];
+
+  cases.forEach(function(c) {
+    assert.equal(browser.render(c[0], c[1]), jst.render(c[0], c[1]), c[0]);
+  });
+});
