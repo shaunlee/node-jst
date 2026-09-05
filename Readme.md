@@ -124,11 +124,16 @@ via npm:
 
 ## Development
 
-    npm test                 # 47 tests, no dependencies
+    npm install
+    npm test                 # unit tests plus an end-to-end express check
     npm run build            # regenerate jst.js (the browser build) from lib/
+    node examples/app.js     # http://localhost:3000
 
  `jst.js` is generated -- edit `lib/` and rebuild. The test suite fails if it
  is stale, and checks that the browser build and the node build agree.
+
+ `examples/` is an express 5 app showing the view engine, a layout, a partial
+ and per-request helpers.
 
 ## License
 
