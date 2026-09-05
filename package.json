@@ -5,6 +5,9 @@
   "author": "Shaun Li <shonhen@gmail.com>",
   "keywords": ["template", "engine", "jst"],
   "main": "./lib/jst.js",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
   "dependencies": {
     "locales": ">0.0.1"
   , "commander": ">0.0.1"
