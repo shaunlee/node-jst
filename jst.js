@@ -240,16 +240,13 @@
     const filterre = /^\s*[A-Za-z_$][\w$]*\s*(?:\(([\s\S]*)\))?\s*$/;
 
     /**
-     * Strips filter names out of a `{{ expr|filter|filter(arg) }}` body, leaving
-     * only the code whose identifiers really come from the context.
+     * Given the parts of a `{{ expr|filter|filter(arg) }}` body, keeps only the
+     * code whose identifiers really come from the context: the expression itself
+     * and any filter arguments, but not the filter names.
      */
-    exports.expression = function(src) {
-      var parts = src.split('|');
-
+    exports.expression = function(parts) {
       return parts.reduce(function(code, part) {
         var m = filterre.exec(part);
-        // Not a plain filter reference (a `||`, or an expression containing `|`) —
-        // analyse it as-is rather than guessing.
         return code + '\n' + (m ? (m[1] || '') : part);
       });
     }
@@ -265,11 +262,51 @@
           // Most strings need no escaping at all; one cheap scan beats building a
           // replacement for them.
           htmltestre = /[&<>"']/,
-          linere = /(\r\n|\r|\n)/g;
+          linere = /(\r\n|\r|\n)/g,
+          // A filter is a name, optionally called with arguments.
+          filterre = /^[A-Za-z_$][\w$]*(?:\([\s\S]*\))?$/;
 
-    exports.convert = function(src) {
-      return src.split('|').reduce(function(varname, filter) {
-        return 'filters.' + filter + '(' + varname + ')';
+    /**
+     * Splits `expr|filter|filter(arg)` on the filter separator. A `|` inside a
+     * string or a nested call belongs to the expression, and `||` is the logical
+     * operator rather than two empty filters.
+     */
+    exports.split = function(src) {
+      var parts = [], start = 0, depth = 0, quote = null;
+
+      for (var i = 0; i < src.length; i++) {
+        var ch = src[i];
+
+        if (quote) {
+          if (ch === '\\') i++;
+          else if (ch === quote) quote = null;
+          continue;
+        }
+
+        if (ch === '"' || ch === "'" || ch === '`') quote = ch;
+        else if (ch === '(' || ch === '[' || ch === '{') depth++;
+        else if (ch === ')' || ch === ']' || ch === '}') depth--;
+        else if (ch === '|' && depth === 0) {
+          if (src[i + 1] === '|') { i++; continue; }
+
+          parts.push(src.substring(start, i));
+          start = i + 1;
+        }
+      }
+
+      parts.push(src.substring(start));
+
+      return parts;
+    }
+
+    exports.convert = function(parts) {
+      return parts.reduce(function(code, filter) {
+        filter = filter.trim();
+
+        if (!filterre.test(filter))
+          throw new Error('`' + filter + '` is not a filter name');
+
+        return 'filters.' + filter + '(' + code + ')';
       });
     }
 
@@ -407,8 +444,17 @@
           script += m[1] + '\n';
           tags.push({index: m.index, src: m[1], braces: false});
         } else if (m[2] !== undefined) {
-          segs.push({v: filters.convert(m[2])});
-          script += scope.expression(m[2]) + '\n';
+          var parts = filters.split(m[2]);
+
+          try {
+            // Parenthesised: the value is concatenated into a larger expression,
+            // and `||`, `?:` and friends bind looser than `+`.
+            segs.push({v: '(' + filters.convert(parts) + ')'});
+          } catch (e) {
+            throw errors.at(e.message, ctx, m.index, name);
+          }
+
+          script += scope.expression(parts) + '\n';
           tags.push({index: m.index, src: m[2], braces: true});
         }
         // `{# comment #}` falls through, emitting nothing.

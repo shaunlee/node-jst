@@ -358,9 +358,27 @@ test('the browser bundle behaves like the node build', function() {
 
 // --- expressions ---
 
+test('low-precedence operators survive concatenation', function() {
+  assert.equal(jst.render('{{ it.a || it.b }}', {a: 0, b: 'fallback'}), 'fallback');
+  assert.equal(jst.render('pre{{ it.a ? "x" : "y" }}post', {a: 1}), 'prexpost');
+  assert.equal(jst.render('pre{{ it.a ? "x" : "y" }}post', {a: 0}), 'preypost');
+  assert.equal(jst.render('{{ it.a && it.b }}', {a: 1, b: 'both'}), 'both');
+});
 
+test('a | inside an expression is not a filter separator', function() {
+  assert.equal(jst.render('{{ it.f("a|b") }}', {f: function(s) { return s; }}), 'a|b');
+  assert.equal(jst.render('{{ (it.a | 0) + 1 }}', {a: 4.7}), '5');
+});
 
+test('filters still chain and take arguments', function() {
+  assert.equal(jst.render('{{ it.v|add(1)|add(1) }}', {v: 1}), '3');
+  assert.equal(jst.render('{{ it.a || it.b|e }}', {a: null, b: '<x>'}), '&lt;x&gt;');
+});
 
+test('a malformed filter is reported, not emitted as broken code', function() {
+  assert.throws(function() { jst.render('{{ it.a|1 }}', {}); },
+    /is not a filter name/);
+});
 
 // --- strict tag syntax ---
 
