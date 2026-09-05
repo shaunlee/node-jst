@@ -132,8 +132,8 @@ via npm:
  `jst.js` is generated -- edit `lib/` and rebuild. The test suite fails if it
  is stale, and checks that the browser build and the node build agree.
 
- `examples/` is an express 5 app showing the view engine, a layout, a partial
- and per-request helpers.
+ `examples/` is an express 5 app showing the view engine, code blocks,
+ filters, a layout and a partial.
 
 ## License
 

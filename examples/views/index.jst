@@ -1,7 +1,25 @@
-<h1>{{ title }}</h1>
-<p>Welcome to {{ title }}</p>
+{# Prefixing with `it.` lets the compiler skip with(it) -- see the Readme #}
 
-<h2>i18n</h2>
-<p>{{ _('Hello {name}', {name: 'JST'}) }}</p>
-<p>{{ _n('There is a car', 'There are {n} cars', 1) }}</p>
-<p>{{ _n('There is a car', 'There are {n} cars', 3) }}</p>
+<h1>{{ it.title }}</h1>
+<p>Welcome to {{ it.title }}</p>
+
+<h2>Code blocks</h2>
+{% if (it.items.length) { %}
+<ul>
+  {% for (var i = 0; i < it.items.length; i++) { %}
+  <li>{{ it.items[i] }}</li>
+  {% } %}
+</ul>
+{% } else { %}
+<p>Nothing to show.</p>
+{% } %}
+
+<h2>Filters</h2>
+<p>{{ it.comment|e }}</p>
+<p>{{ it.stars|add(1) }} stars</p>
+
+<h2>Preformatted text survives minifying</h2>
+<pre>
+  one
+    two
+</pre>

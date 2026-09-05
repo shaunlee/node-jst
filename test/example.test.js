@@ -1,6 +1,8 @@
 var test = require('node:test'),
     assert = require('node:assert'),
-    path = require('path');
+    fs = require('fs'),
+    path = require('path'),
+    jst = require('../index');
 
 // The example carries the only end-to-end wiring of the engine into express,
 // and went unnoticed for years after express removed the APIs it used.
@@ -22,17 +24,25 @@ if (app) {
 
       assert.match(page, /<title>Express<\/title>/);
       assert.match(page, /<h1>Express<\/h1>/, 'the view');
+      assert.match(page, /<li>one<\/li>\s*<li>two<\/li>/, 'a code block');
+      assert.match(page, /&lt;b&gt;this&lt;\/b&gt;/, 'the e filter');
+      assert.match(page, /5 stars/, 'the add filter');
+      assert.match(page, /<pre>\n  one\n    two\n<\/pre>/, '<pre> is not minified');
       assert.match(page, /Template powered by node-jst\./, 'the partial');
-      assert.match(page, /你好 JST/, 'gettext');
-      assert.match(page, /有3辆车/, 'ngettext, plural');
-
-      var english = await (await fetch(base + '/?lang=en')).text();
-      assert.match(english, /There are 3 cars/);
 
       var css = await (await fetch(base + '/stylesheets/style.css')).text();
       assert.match(css, /^body \{/, 'static files');
     } finally {
       server.close();
     }
+  });
+
+  test('the example views take the with(it)-free fast path', function() {
+    var views = path.join(__dirname, '..', 'examples', 'views');
+
+    fs.readdirSync(views).forEach(function(name) {
+      var src = fs.readFileSync(path.join(views, name), 'utf8');
+      assert.equal(/with\(it\)/.test(jst.compile(src, true)), false, name);
+    });
   });
 }
