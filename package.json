@@ -3,9 +3,18 @@
   "description": "Node JavaScript Template, A pretty high performance template engine",
   "version": "0.1.0",
   "author": "Shaun Li <me@shaunli.com>",
+  "license": "MIT",
   "keywords": ["template", "engine", "jst"],
+  "repository": {
+    "type": "git"
+  , "url": "git+https://github.com/shaunlee/node-jst.git"
+  },
+  "bugs": { "url": "https://github.com/shaunlee/node-jst/issues" },
+  "homepage": "https://github.com/shaunlee/node-jst#readme",
   "main": "./lib/jst.js",
   "bin": { "jst": "./bin/jst" },
+  "files": ["index.js", "jst.js", "lib/", "bin/", "LICENSE"],
+  "engines": { "node": ">=18" },
   "scripts": {
     "test": "node --test test/*.test.js"
   , "build": "node bin/build-browser"
