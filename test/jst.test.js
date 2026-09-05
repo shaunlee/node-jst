@@ -355,3 +355,52 @@ test('the browser bundle behaves like the node build', function() {
     assert.equal(browser.render(c[0], c[1]), jst.render(c[0], c[1]), c[0]);
   });
 });
+
+// --- expressions ---
+
+
+
+
+
+// --- strict tag syntax ---
+
+
+test('a literal {{ can still be written', function() {
+  assert.equal(jst.render('{{ "{{" }}name{{ "}}" }}', {}), '{{name}}');
+});
+
+
+test('a broken tag is blamed rather than the generated code', function() {
+  try {
+    jst.compile('<p>ok</p>\n{% if ( %}\n{% } %}', false, 'page.jst');
+    assert.fail('should have thrown');
+  } catch (e) {
+    assert.match(e.message, /unbalanced "\("/);
+    assert.equal(e.line, 2);
+  }
+});
+
+test('an unlocatable failure still shows what was generated', function() {
+  try {
+    jst.compile('{% var 1x = 2 %}', false, 'page.jst');
+    assert.fail('should have thrown');
+  } catch (e) {
+    assert.match(e.message, /could not compile page\.jst/);
+    assert.match(e.message, /Generated code:/);
+    assert.ok(e.cause, 'keeps the underlying error');
+  }
+});
+
+test('compiling to source is checked too', function() {
+  assert.throws(function() { jst.compile('{% var 1x = 2 %}', true, 'page.jst'); },
+    /could not compile/);
+});
+
+// --- filters are null-safe ---
+
+
+
+
+// --- the compiled-function cache is bounded ---
+
+
