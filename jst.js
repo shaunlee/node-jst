@@ -348,7 +348,10 @@
           textEscape = function(src) { return textcodes[src]; },
           // <pre> and <textarea> content is significant and must survive minifying.
           rawre = /<(\/?)(?:pre|textarea)\b/gi,
-          wsre = /[\t\r\n]/g;
+          wsre = /[\t\r\n]/g,
+          // A `{{` or `{%` left in the text means a tag was written without the
+          // spaces the syntax requires, and would otherwise reach the page as-is.
+          strayre = /\{\{|\{%/;
 
     // Collapses layout whitespace, but leaves anything inside <pre>/<textarea>
     // alone. `state.raw` carries the nesting depth across text segments.
@@ -380,7 +383,14 @@
           tags = [],
           script = '';
 
-      function text(src) {
+      function text(src, offset) {
+        var stray = strayre.exec(src);
+
+        if (stray)
+          throw errors.at('unexpected `' + stray[0] + '` -- a tag needs spaces '
+            + 'inside it, as `{{ name }}` or `{% code %}`. For a literal, write '
+            + '`{{ \'' + stray[0] + '\' }}`', ctx, offset + stray.index, name);
+
         src = minify(src, state);
         if (src !== '') segs.push({s: src.replace(textre, textEscape)});
       }
@@ -388,7 +398,7 @@
       tokenre.lastIndex = 0;
 
       while ((m = tokenre.exec(ctx)) !== null) {
-        if (m.index > i) text(ctx.substring(i, m.index));
+        if (m.index > i) text(ctx.substring(i, m.index), i);
 
         if (m[1] !== undefined) {
           // `{% code %}` — newlines around it keep a trailing `//` comment from
@@ -406,7 +416,7 @@
         i = m.index + m[0].length;
       }
 
-      if (i < ctx.length) text(ctx.substring(i));
+      if (i < ctx.length) text(ctx.substring(i), i);
 
       var useWith = scope.needsWith(script),
           last = useWith ? 'c' : 'n',

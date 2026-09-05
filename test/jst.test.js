@@ -364,11 +364,30 @@ test('the browser bundle behaves like the node build', function() {
 
 // --- strict tag syntax ---
 
+test('{{a}} is rejected instead of reaching the page', function() {
+  assert.throws(function() { jst.render('<p>{{a}}</p>', {a: 1}); },
+    /unexpected `\{\{`/);
+  assert.throws(function() { jst.render('{%if (1) {%}x{% } %}', {}); },
+    /unexpected `\{%`/);
+});
 
 test('a literal {{ can still be written', function() {
   assert.equal(jst.render('{{ "{{" }}name{{ "}}" }}', {}), '{{name}}');
 });
 
+test('the error points at the line and column', function() {
+  try {
+    jst.compile('<p>ok</p>\n<div>\n  {{name}}\n</div>', false, 'views/index.jst');
+    assert.fail('should have thrown');
+  } catch (e) {
+    assert.equal(e.fileName, 'views/index.jst');
+    assert.equal(e.line, 3);
+    assert.equal(e.column, 3);
+    assert.match(e.message, /views\/index\.jst:3:3/);
+    assert.match(e.message, /\{\{name\}\}/, 'shows the offending line');
+    assert.match(e.message, /\^/, 'and points at it');
+  }
+});
 
 test('a broken tag is blamed rather than the generated code', function() {
   try {
