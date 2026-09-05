@@ -145,6 +145,9 @@
     const htmlCodes = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'},
           htmlre = /&(?!\w+;)|<|>|"|'/g,
           htmlEscape = function (src) { return htmlCodes[src]; },
+          // Most strings need no escaping at all; one cheap scan beats building a
+          // replacement for them.
+          htmltestre = /[&<>"']/,
           linere = /(\r\n|\r|\n)/g;
 
     exports.convert = function(src) {
@@ -154,7 +157,8 @@
     }
 
     function escape(src) {
-      return typeof src !== 'string' ? src : src.replace(htmlre, htmlEscape);
+      if (typeof src !== 'string' || !htmltestre.test(src)) return src;
+      return src.replace(htmlre, htmlEscape);
     }
 
     function linebreaks(src) {
