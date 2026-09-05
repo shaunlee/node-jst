@@ -278,6 +278,15 @@ function usesWith(tpl) {
   return /with\(it\)/.test(jst.compile(tpl, true));
 }
 
+test('it.-only templates skip with(it), even inside code blocks', function() {
+  assert.equal(usesWith('{{ it.a }}'), false);
+  assert.equal(usesWith('{% if (it.a) { %}x{% } %}'), false);
+  assert.equal(usesWith('{{ f(it.a) }}'), true, 'f comes from the context');
+  assert.equal(usesWith('{{ it.f(it.a) }}'), false);
+  assert.equal(usesWith('{% for (var i = 0; i < it.n; i++) { %}{{ i }}{% } %}'), false);
+  assert.equal(usesWith('{{ it.a|e }}'), false);
+  assert.equal(usesWith('{{ it.a|add(1) }}'), false);
+});
 
 test('bare identifiers still get with(it)', function() {
   assert.equal(usesWith('{{ title }}'), true);
@@ -293,6 +302,17 @@ test('the fast path renders the same output as with(it)', function() {
   assert.equal(jst.render(fast, data), jst.render(slow, data));
 });
 
+test('scope analysis is conservative around ambiguity', function() {
+  var scope = require('../lib/scope');
+  assert.equal(scope.needsWith('it.a'), false);
+  assert.equal(scope.needsWith('"a bareword in a string"'), false);
+  assert.equal(scope.needsWith('// a bareword in a comment'), false);
+  assert.equal(scope.needsWith('it.f({key: it.v})'), false, 'object keys are not variables');
+  assert.equal(scope.needsWith('it.a ? it.b : c'), true, 'ternary branches are');
+  assert.equal(scope.needsWith('try { it.a() } catch (e) { e.message }'), false);
+  assert.equal(scope.needsWith('it.l.map(function (row) { return row.x })'), false);
+  assert.equal(scope.needsWith('helper(it.a)'), true);
+});
 
 test('an it.-style template may start with a code block', function() {
   assert.equal(
@@ -307,6 +327,9 @@ test('a template-declared variable is usable without it.', function() {
   assert.equal(jst.render('{% var x = 1 %}{{ it.a }}{{ x }}', {a: 'A'}), 'A1');
 });
 
+test('both variable styles may be mixed in one template', function() {
+  assert.equal(jst.render('{{ title }}|{{ it.title }}', {title: 'T'}), 'T|T');
+});
 
 // --- browser bundle ---
 
