@@ -461,4 +461,28 @@ test('there is no filter that silently does nothing', function() {
 
 // --- the compiled-function cache is bounded ---
 
+test('the render cache holds at most cacheLimit templates', function() {
+  jst.configure({cacheLimit: 5});
 
+  try {
+    for (var i = 0; i < 50; i++) jst.render('probe ' + i + ' {{ it.x }}', {x: 1});
+
+    assert.ok(jst.cacheSize() <= 5, 'held ' + jst.cacheSize());
+    assert.equal(jst.render('probe 0 {{ it.x }}', {x: 2}), 'probe 0 2',
+      'an evicted template still renders');
+  } finally {
+    jst.configure({cacheLimit: 1000});
+  }
+});
+
+test('lowering cacheLimit evicts immediately', function() {
+  try {
+    for (var i = 0; i < 20; i++) jst.render('shrink ' + i + ' {{ it.x }}', {x: 1});
+    assert.ok(jst.cacheSize() >= 20);
+
+    jst.configure({cacheLimit: 4});
+    assert.equal(jst.cacheSize(), 4);
+  } finally {
+    jst.configure({cacheLimit: 1000});
+  }
+});

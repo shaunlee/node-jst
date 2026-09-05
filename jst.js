@@ -364,7 +364,29 @@
         filters.filters[name] = newFilters[name];
     }
 
-    var _cache = Object.create(null);
+    // render() is often handed strings built at runtime, so the compiled-function
+    // cache is bounded and evicts in insertion order rather than growing forever.
+    var _cache = new Map(),
+        _options = exports.options = {
+          cache: false,
+          cacheLimit: 1000
+        };
+
+    exports.configure = function(options) {
+      for (var prop in options) {
+        _options[prop] = options[prop];
+      }
+
+      evict();
+    }
+
+    // Number of compiled templates currently held.
+    exports.cacheSize = function() { return _cache.size; }
+
+    function evict() {
+      while (_cache.size > _options.cacheLimit)
+        _cache.delete(_cache.keys().next().value);
+    }
 
     // compiler
 
@@ -496,10 +518,13 @@
     }
 
     var render = exports.render = function(ctx, args) {
-      var fn = _cache[ctx];
+      var fn = _cache.get(ctx);
 
       if (fn === undefined) {
-        fn = _cache[ctx] = compile(ctx);
+        fn = compile(ctx);
+
+        _cache.set(ctx, fn);
+        evict();
       }
 
       return fn(args);
