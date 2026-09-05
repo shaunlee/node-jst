@@ -235,7 +235,14 @@ test('renderFile stays asynchronous on a cache hit', function(t, done) {
 
 // --- minifying must not corrupt code or preformatted text ---
 
+test('a // comment in a code block does not swallow the template', function() {
+  assert.equal(jst.render('{% // a note %}kept {{ it.a }}', {a: 1}), 'kept 1');
+});
 
+test('multi-line code blocks work', function() {
+  var t = '{%\n  var n = 2;\n  // double it\n  n = n * 2;\n%}{{ n }}';
+  assert.equal(jst.render(t, {}), '4');
+});
 
 test('multi-line comments are stripped', function() {
   assert.equal(jst.render('a{#\n  gone\n#}b', {}), 'ab');
@@ -245,8 +252,20 @@ test('layout whitespace is collapsed', function() {
   assert.equal(jst.render('<p>\n  a\n</p>', {}), '<p>  a</p>');
 });
 
+test('<pre> content is preserved verbatim', function() {
+  assert.equal(jst.render('<pre>\n  a\n\tb\n</pre>\n<p>c</p>', {}),
+    '<pre>\n  a\n\tb\n</pre><p>c</p>');
+});
 
+test('<textarea> content is preserved verbatim', function() {
+  assert.equal(jst.render('<textarea>\na\n</textarea>\n<p>b</p>', {}),
+    '<textarea>\na\n</textarea><p>b</p>');
+});
 
+test('interpolation always yields a string', function() {
+  assert.equal(typeof jst.render('{{ it.a }}', {a: 1}), 'string');
+  assert.equal(jst.render('{{ it.a }}', {a: 1}), '1');
+});
 
 test('an empty template renders an empty string', function() {
   assert.equal(jst.render('', {}), '');
@@ -265,9 +284,28 @@ test('bare identifiers still get with(it)', function() {
   assert.equal(usesWith('{% if (user) { %}x{% } %}'), true);
 });
 
+test('the fast path renders the same output as with(it)', function() {
+  var fast = '{% for (var i = 0; i < it.rows.length; i++) { %}<li>{{ it.rows[i]|e }}</li>{% } %}',
+      slow = '{% for (var i = 0; i < rows.length; i++) { %}<li>{{ rows[i]|e }}</li>{% } %}',
+      data = {rows: ['a<b>', 'c&d']};
+  assert.equal(usesWith(fast), false);
+  assert.equal(usesWith(slow), true);
+  assert.equal(jst.render(fast, data), jst.render(slow, data));
+});
 
 
+test('an it.-style template may start with a code block', function() {
+  assert.equal(
+    jst.render('{% if (it.user) { %}<h2>{{ it.user.name }}</h2>{% } %}', {user: {name: 'u'}}),
+    '<h2>u</h2>');
+  assert.equal(
+    jst.render('{% for (var i = 0; i < it.n; i++) { %}x{% } %}', {n: 3}), 'xxx');
+});
 
+test('a template-declared variable is usable without it.', function() {
+  assert.equal(jst.render('{% var x = 1 %}{{ x }}', {}), '1');
+  assert.equal(jst.render('{% var x = 1 %}{{ it.a }}{{ x }}', {a: 'A'}), 'A1');
+});
 
 
 // --- browser bundle ---
