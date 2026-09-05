@@ -3,6 +3,35 @@
  Node-jst is a pretty high performance template engine and implemented
  with JavaScript for Node.js
 
+## Benchmarks
+
+ Node 26, a 5KB page with 20 HTML-escaped rows, every engine producing the
+ same output, best of three runs:
+
+    jst           165k ops/s   1.00x
+    doT           166k ops/s   1.01x
+    handlebars    118k ops/s   0.72x
+    ejs            47k ops/s   0.28x
+
+ Most of that comes from writing `{{ it.name }}` rather than `{{ name }}`,
+ which lets the compiler emit a plain function instead of one wrapped in
+ `with(it)`. On the same page:
+
+    it. everywhere            165k ops/s
+    bare identifiers           50k ops/s   0.30x
+
+ See [Performance](#performance) for what the compiler can and cannot work
+ out for itself. Against jst 0.0.14, by template shape:
+
+    5KB page, it. style                    79k -> 165k ops/s    2.1x
+    5KB page, bare identifiers             38k ->  50k ops/s    1.3x
+    5KB page, it. only inside {% %}        66k -> 1.7M ops/s   26.3x
+    small template                        720k -> 2.9M ops/s    4.0x
+
+ The third row is large because 0.0.14 detected the `it.` prefix with a single
+ regex over `{{ }}` tags, so a template using `it.` exclusively inside `{% %}`
+ was pushed onto the `with(it)` path.
+
 ## Installation
 
 via npm:
@@ -13,9 +42,11 @@ via npm:
 
   * Compiles templates to plain JavaScript functions, cached automatically
   * Unbuffered code for embed codes etc `{% code %}` or `{{ variable }}`
-  * Enforcing coding standard, for example `{{ variable }}` is correct, but `{{variable}}` is wrong
+  * Enforcing coding standard: `{{ variable }}` is correct, `{{variable}}` is
+    a compile error rather than something that reaches the page
   * Customizable filters
   * Layout whitespace is collapsed, except inside `<pre>` and `<textarea>`
+  * Compile errors name the file, the line and the column
   * Runs in the browser from the same source
 
 ## Example
@@ -37,6 +68,10 @@ via npm:
       // the callback can be the second arg
     });
 
+    // Render a file synchronously, sharing the same cache -- for composing
+    // views from inside a template, where there is nowhere to put a callback
+    jst.renderFileSync('path/to/some.html', {name: 'jst'});
+
     // Compile a function
     var fn = jst.compile('Hello {{ name }}');
     fn({name: 'jst'});
@@ -44,7 +79,7 @@ via npm:
     // Prefix variables with `it.` to get the fast path -- see Performance
     jst.render('Hello {{ it.name }}', {name: 'jst'});
 
-    // Filters
+    // Filters: e (escape), linebreaks, linebreaksbr, add
     jst.render('Hello {{ it.name|e }}', {name: '<strong>jst</strong>'});
     jst.render('{{ it.entry|e|linebreaks }}', {entry: '...'});
     jst.render('{{ it.value|add(123) }}', {value: 123});
@@ -64,6 +99,35 @@ via npm:
       jst.render('Hello {{ it.name }}', {name: 'jst'});
     </script>
 
+## Syntax
+
+    {{ value }}       an expression, written into the output
+    {% code %}        JavaScript, run for its effect
+    {# comment #}     dropped at compile time
+
+ The spaces inside the delimiters are part of the syntax, and a `{{` or `{%`
+ without them is a compile error rather than text that quietly reaches the
+ page:
+
+    jst: unexpected `{{` -- a tag needs spaces inside it, as `{{ name }}`
+      at views/index.jst:3:6
+
+      2 | <div>
+      3 |     {{name}}
+        |     ^
+      4 | </div>
+
+ A `|` separates filters, so an expression that needs one -- `||` included --
+ either uses it as an operator or keeps it inside brackets:
+
+    {{ it.a || it.b }}          logical or, not two empty filters
+    {{ it.f("a|b") }}           inside a string
+    {{ (it.n | 0) + 1 }}        bitwise, inside brackets
+
+ To emit a delimiter literally, write it as a string:
+
+    {{ "{{" }}name{{ "}}" }}    renders {{name}}
+
 ## Performance
 
 ### Write `it.`
@@ -71,7 +135,6 @@ via npm:
  Every variable a template reads has to come from somewhere. Written
  `{{ it.name }}`, the compiler knows where and emits a plain function. Written
  `{{ name }}`, it has to wrap the body in `with(it)`, which V8 cannot optimise.
- That is worth 2x on a large page and closer to 30x on a small one.
 
  The compiler decides this from the whole template, not just the `{{ }}` tags,
  so `it.` inside `{% %}` counts too:
@@ -88,39 +151,20 @@ via npm:
  injected by `app.locals` -- falls back to `with(it)`. Mixing the two styles is
  always safe; only fully `it.`-prefixed templates get the fast path.
 
-### Turn off stat() in production
+### Caching
 
  Compiled templates are cached automatically. `renderFile` additionally
  `stat()`s the file on every render to pick up changes, which is what you want
- in development but is pure overhead in production:
+ in development and pure overhead in production:
 
     jst.configure({cache: true});
 
-## Benchmarks
+ `render()` keys its cache on the template string, and templates built at
+ runtime would otherwise accumulate forever, so it holds a bounded number of
+ compiled functions and evicts the oldest:
 
- Node 26, best of three runs. A 5KB page with 20 HTML-escaped rows, every
- engine producing the same output:
-
-    jst           162k ops/s   1.00x
-    doT           168k ops/s   1.04x
-    handlebars    119k ops/s   0.73x
-    ejs            45k ops/s   0.28x
-
- What the `it.` prefix is worth, same 5KB page:
-
-    it. everywhere            163k ops/s
-    bare identifiers           49k ops/s   0.30x
-
- Against jst 0.0.14, by template shape:
-
-    5KB page, it. style                    79k -> 163k ops/s    2.1x
-    5KB page, bare identifiers             38k ->  49k ops/s    1.3x
-    5KB page, it. only inside {% %}        64k -> 2.2M ops/s   34.9x
-    small template                        741k -> 2.9M ops/s    3.9x
-
- The third row is large because 0.0.14 detected the `it.` prefix with a single
- regex over `{{ }}` tags only, so a template using `it.` exclusively inside
- `{% %}` was pushed onto the `with(it)` path.
+    jst.configure({cacheLimit: 1000});   // the default
+    jst.cacheSize();                     // how many are held right now
 
 ## Command line
 
@@ -146,4 +190,4 @@ via npm:
 
 ## License
 
-(The MIT License)
+ [MIT](LICENSE)
