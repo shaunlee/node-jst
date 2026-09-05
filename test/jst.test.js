@@ -435,8 +435,29 @@ test('compiling to source is checked too', function() {
 
 // --- filters are null-safe ---
 
+test('filters pass non-strings through instead of throwing', function() {
+  var filters = require('../lib/filters').filters;
 
+  [null, undefined, 0, 42].forEach(function(v) {
+    assert.equal(filters.escape(v), v);
+    assert.equal(filters.linebreaks(v), v);
+    assert.equal(filters.linebreaksbr(v), v);
+  });
+});
 
+test('linebreaks and linebreaksbr agree on what a line break is', function() {
+  var filters = require('../lib/filters').filters;
+
+  assert.equal(filters.linebreaks('a\r\nb\rc\nd'), '<p>a</p><p>b</p><p>c</p><p>d</p>');
+  assert.equal(filters.linebreaksbr('a\rb'), 'a<br>\rb');
+});
+
+test('there is no filter that silently does nothing', function() {
+  var filters = require('../lib/filters').filters;
+
+  assert.equal(filters.markdown, undefined);
+  assert.equal(filters.md, undefined);
+});
 
 // --- the compiled-function cache is bounded ---
 

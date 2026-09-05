@@ -263,6 +263,7 @@
           // replacement for them.
           htmltestre = /[&<>"']/,
           linere = /(\r\n|\r|\n)/g,
+          breakre = /\r\n|\r|\n/g,
           // A filter is a name, optionally called with arguments.
           filterre = /^[A-Za-z_$][\w$]*(?:\([\s\S]*\))?$/;
 
@@ -316,10 +317,12 @@
     }
 
     function linebreaks(src) {
-      return '<p>' + src.split(/\r\n|\n/g).join('</p><p>') + '</p>';
+      if (typeof src !== 'string') return src;
+      return '<p>' + src.split(breakre).join('</p><p>') + '</p>';
     }
 
     function linebreaksbr(src) {
+      if (typeof src !== 'string') return src;
       return src.replace(linere, '<br>$1');
     }
 
@@ -327,18 +330,12 @@
       return function(src) { return Number(value) + Number(src); };
     }
 
-    function markdown(src) {
-      return src; // TODO:
-    }
-
     exports.filters = {
       escape: escape, e: escape,
       linebreaks: linebreaks,
       linebreaksbr: linebreaksbr,
-      markdown: markdown, md: markdown,
       add: add
     };
-
 
   };
 
