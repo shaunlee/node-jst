@@ -19,13 +19,13 @@
   "homepage": "https://github.com/shaunlee/node-jst#readme",
   "main": "./lib/jst.js",
   "bin": {
-    "jst": "./bin/jst"
+    "jst": "bin/jst"
   },
   "files": [
     "index.js",
     "jst.js",
     "lib/",
-    "bin/",
+    "bin/jst",
     "LICENSE"
   ],
   "engines": {
