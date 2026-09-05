@@ -5,32 +5,49 @@
 
 ## Benchmarks
 
- Node 26, a 5KB page with 20 HTML-escaped rows, every engine producing the
- same output, best of three runs:
+ A 5KB page rendering 20 rows through an HTML-escaping filter, every engine
+ producing the same output. Best of seven runs, node 26 and bun 1.4 on the
+ same machine, one row in ten containing markup:
 
-    jst           165k ops/s   1.00x
-    doT           166k ops/s   1.01x
-    handlebars    118k ops/s   0.72x
-    ejs            47k ops/s   0.28x
+                     node 26     bun 1.4
+    jst                 470k        526k ops/s
+    doT                 314k        425k
+    handlebars          242k        252k
+    ejs                  55k         99k
 
- Most of that comes from writing `{{ it.name }}` rather than `{{ name }}`,
- which lets the compiler emit a plain function instead of one wrapped in
- `with(it)`. On the same page:
+ jst skips building a replacement for a value with nothing to escape, which is
+ most of them. When every value does need escaping that shortcut never pays
+ off and doT draws level:
 
-    it. everywhere            165k ops/s
-    bare identifiers           50k ops/s   0.30x
+                     node 26     bun 1.4
+    jst                 135k        183k ops/s
+    doT                 139k        188k
+    handlebars          100k        119k
+    ejs                  44k         74k
 
- See [Performance](#performance) for what the compiler can and cannot work
- out for itself. Against jst 0.0.14, by template shape:
+ The rest of the difference comes from writing `{{ it.name }}` rather than
+ `{{ name }}`, which lets the compiler emit a plain function instead of one
+ wrapped in `with(it)`. Same page, compiled once and called:
 
-    5KB page, it. style                    79k -> 165k ops/s    2.1x
-    5KB page, bare identifiers             38k ->  50k ops/s    1.3x
-    5KB page, it. only inside {% %}        66k -> 1.7M ops/s   26.3x
-    small template                        720k -> 2.9M ops/s    4.0x
+                     node 26     bun 1.4
+    it. everywhere      446k        563k ops/s
+    bare identifiers     66k        121k
+                        6.8x        4.7x
 
- The third row is large because 0.0.14 detected the `it.` prefix with a single
- regex over `{{ }}` tags, so a template using `it.` exclusively inside `{% %}`
- was pushed onto the `with(it)` path.
+ See [Performance](#performance) for what the compiler can work out for
+ itself. Against jst 0.0.14, through `render()`, by how the template reaches
+ its variables:
+
+                          node 26           bun 1.4
+    it. in tags        122k ->  470k     134k ->  516k    3.8x
+    it. only in {% %}   74k -> 1453k     102k -> 1616k   16-20x
+    bare identifiers    47k ->   65k      72k ->  118k    1.4x
+
+ The middle row is large because 0.0.14 detected the `it.` prefix with a
+ single regex over `{{ }}` tags, so a template using `it.` only inside
+ `{% %}` was pushed onto the `with(it)` path. Most of the first row is
+ `render()` itself: 0.0.14 hashed the whole template on every call to look it
+ up in its cache.
 
 ## Installation
 
@@ -134,7 +151,10 @@ via npm:
 
  Every variable a template reads has to come from somewhere. Written
  `{{ it.name }}`, the compiler knows where and emits a plain function. Written
- `{{ name }}`, it has to wrap the body in `with(it)`, which V8 cannot optimise.
+ `{{ name }}`, it has to wrap the body in `with(it)`, which neither V8 nor
+ JavaScriptCore optimises through. Measured at 2x to 19x depending on the
+ template and the engine, and worst on small templates that read several
+ variables.
 
  The compiler decides this from the whole template, not just the `{{ }}` tags,
  so `it.` inside `{% %}` counts too:
