@@ -201,6 +201,21 @@ test('version matches package.json', function() {
   assert.equal(jst.version, require('../package.json').version);
 });
 
+test('configure({cache:true}) skips the stat and serves the cached function', function(t, done) {
+  var p = tmpfile('f.jst', 'v1');
+  jst.renderFile(p, {}, function(err, first) {
+    assert.ifError(err);
+    assert.equal(first, 'v1');
+    jst.configure({cache: true});
+    tmpfile('f.jst', 'v2');
+    jst.renderFile(p, {}, function(err, second) {
+      jst.configure({cache: false});
+      assert.ifError(err);
+      assert.equal(second, 'v1', 'change ignored while cached');
+      done();
+    });
+  });
+});
 
 test('renderFile stays asynchronous on a cache hit', function(t, done) {
   var p = tmpfile('g.jst', 'sync?'),
