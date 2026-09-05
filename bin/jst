@@ -1,17 +1,22 @@
 #!/usr/bin/env node
 
-var program = require('commander')
-  , fs = require('fs')
+var fs = require('fs')
+  , { Command } = require('commander')
   , jst = require('../index')
 
+var program = new Command()
+
 program
+  .name('jst')
+  .description('Compile jst templates to standalone JavaScript functions')
+  .argument('<file...>', 'templates to compile')
   .version(jst.version)
-  .parse(process.argv);
+  .action(function(filenames){
+    filenames.forEach(function(filename){
+      var template = fs.readFileSync(filename, 'utf8')
 
-var filenames = program.args;
+      console.log(jst.compile(template, true))
+    })
+  })
 
-filenames.forEach(function(filename){
-    var template = fs.readFileSync(filename, 'utf8')
-
-    console.log(jst.compile(template, true));
-})
+program.parse()

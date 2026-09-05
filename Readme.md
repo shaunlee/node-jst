@@ -122,6 +122,15 @@ via npm:
  regex over `{{ }}` tags only, so a template using `it.` exclusively inside
  `{% %}` was pushed onto the `with(it)` path.
 
+## Command line
+
+ Compile templates to standalone functions, one per file, on stdout:
+
+    jst path/to/some.jst
+
+ The emitted source expects a `jst` global carrying the filters, which is what
+ the browser build provides.
+
 ## Development
 
     npm install

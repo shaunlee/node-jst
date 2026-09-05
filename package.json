@@ -5,12 +5,13 @@
   "author": "Shaun Li <me@shaunli.com>",
   "keywords": ["template", "engine", "jst"],
   "main": "./lib/jst.js",
+  "bin": { "jst": "./bin/jst" },
   "scripts": {
     "test": "node --test test/*.test.js"
   , "build": "node bin/build-browser"
   },
   "dependencies": {
-    "commander": ">0.0.1"
+    "commander": "^15.0.0"
   },
   "devDependencies": {
     "express": "^5.2.1"
