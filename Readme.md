@@ -11,10 +11,12 @@ via npm:
 
 ## Features
 
-  * Automatically caching of intermediate JavaScript
+  * Compiles templates to plain JavaScript functions, cached automatically
   * Unbuffered code for embed codes etc `{% code %}` or `{{ variable }}`
   * Enforcing coding standard, for example `{{ variable }}` is correct, but `{{variable}}` is wrong
   * Customizable filters
+  * Layout whitespace is collapsed, except inside `<pre>` and `<textarea>`
+  * Runs in the browser from the same source
 
 ## Example
 
@@ -39,7 +41,7 @@ via npm:
     var fn = jst.compile('Hello {{ name }}');
     fn({name: 'jst'});
 
-    // Use `it.` as prefix of variables so that you can run it more than 30 times faster
+    // Prefix variables with `it.` to get the fast path -- see Performance
     jst.render('Hello {{ it.name }}', {name: 'jst'});
 
     // Filters
@@ -62,13 +64,72 @@ via npm:
       jst.render('Hello {{ it.name }}', {name: 'jst'});
     </script>
 
+## Performance
+
+### Write `it.`
+
+ Every variable a template reads has to come from somewhere. Written
+ `{{ it.name }}`, the compiler knows where and emits a plain function. Written
+ `{{ name }}`, it has to wrap the body in `with(it)`, which V8 cannot optimise.
+ That is worth 2x on a large page and closer to 30x on a small one.
+
+ The compiler decides this from the whole template, not just the `{{ }}` tags,
+ so `it.` inside `{% %}` counts too:
+
+    {% for (var i = 0; i < it.rows.length; i++) { %}   <!-- no with(it) -->
+    {% for (var i = 0; i < rows.length; i++) { %}      <!-- needs with(it) -->
+
+ Variables the template declares itself are free, so an `it.`-only template
+ still gets the fast path:
+
+    {% var total = it.a + it.b %}{{ total }}           <!-- no with(it) -->
+
+ Anything the compiler cannot account for -- a bare identifier, a helper
+ injected by `app.locals` -- falls back to `with(it)`. Mixing the two styles is
+ always safe; only fully `it.`-prefixed templates get the fast path.
+
+### Turn off stat() in production
+
+ Compiled templates are cached automatically. `renderFile` additionally
+ `stat()`s the file on every render to pick up changes, which is what you want
+ in development but is pure overhead in production:
+
+    jst.configure({cache: true});
+
 ## Benchmarks
 
-  [A brief comparison of some JavaScript templating engines on a short
-  template: 7 DOM nodes ... 7 interpolated values.][link]
+ Node 26, best of three runs. A 5KB page with 20 HTML-escaped rows, every
+ engine producing the same output:
 
-  [link]: http://jsperf.com/dom-vs-innerhtml-based-templating/144
+    jst           162k ops/s   1.00x
+    doT           168k ops/s   1.04x
+    handlebars    119k ops/s   0.73x
+    ejs            45k ops/s   0.28x
 
-## License 
+ What the `it.` prefix is worth, same 5KB page:
+
+    it. everywhere            163k ops/s
+    bare identifiers           49k ops/s   0.30x
+
+ Against jst 0.0.14, by template shape:
+
+    5KB page, it. style                    79k -> 163k ops/s    2.1x
+    5KB page, bare identifiers             38k ->  49k ops/s    1.3x
+    5KB page, it. only inside {% %}        64k -> 2.2M ops/s   34.9x
+    small template                        741k -> 2.9M ops/s    3.9x
+
+ The third row is large because 0.0.14 detected the `it.` prefix with a single
+ regex over `{{ }}` tags only, so a template using `it.` exclusively inside
+ `{% %}` was pushed onto the `with(it)` path.
+
+## Development
+
+    npm test                 # 47 tests, no dependencies
+    npm run build            # regenerate jst.js (the browser build) from lib/
+
+ `jst.js` is generated -- edit `lib/` and rebuild. The test suite fails if it
+ is stale, and checks that the browser build and the node build agree.
+
+## License
 
 (The MIT License)
